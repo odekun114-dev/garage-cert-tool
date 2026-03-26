@@ -42,8 +42,8 @@ dependencies:
   supabase_flutter: any
   holiday_jp: any
   google_generative_ai: any
-  flutter_dotenv: any
   fl_chart: any
+
   file_picker: any
   csv: any
   charset_converter: any
@@ -66,7 +66,7 @@ flutter:
   assets:
     - assets/templates/2-2syoumeisinsei0803.xlsx
     - assets/templates/3-2hokanbasyotodoke0803.xlsx
-    - .env
+
 
 
   # To add assets to your application, add an assets section, like this:

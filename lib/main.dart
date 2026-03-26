@@ -1,22 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'screens/garage_certificate_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
-  // .envファイルを読み込む
-  try {
-    await dotenv.load(fileName: ".env");
-  } catch (e) {
-    debugPrint("Warning: .env file not found or could not be loaded: $e");
-  }
+  // セキュリティ性能の高い String.fromEnvironment を使用
+  // Vercel の管理画面で設定した値がビルド時に注入されます
+  const supabaseUrl = String.fromEnvironment('SUPABASE_URL');
+  const supabaseAnonKey = String.fromEnvironment('SUPABASE_ANON_KEY');
 
   // Supabaseの初期化
   await Supabase.initialize(
-    url: dotenv.env['SUPABASE_URL'] ?? '',
-    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
+    url: supabaseUrl.isNotEmpty ? supabaseUrl : '',
+    anonKey: supabaseAnonKey.isNotEmpty ? supabaseAnonKey : '',
   );
 
   runApp(const MyApp());
@@ -38,4 +35,5 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
 
