@@ -93,12 +93,15 @@ class ExcelService {
     final List<int>? fileBytes = excel.save();
     if (fileBytes != null) {
       final String fileName = "車庫証明_${isLightCar ? '軽' : '普通'}_${now.millisecondsSinceEpoch}.xlsx";
-      final directory = await getTemporaryDirectory();
-      final File file = File('${directory.path}/$fileName');
-      await file.writeAsBytes(fileBytes);
       
-      // Share 経由でユーザーに渡す（モバイル/デスクトップ共通で使いやすい）
-      await Share.shareXFiles([XFile(file.path)], text: '車庫証明Excelデータ');
+      // Webブラウザでクラッシュしないよう、メモリ上で直接XFileを作成してダウンロード・共有させる
+      final xfile = XFile.fromData(
+        Uint8List.fromList(fileBytes),
+        name: fileName,
+        mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      
+      await Share.shareXFiles([xfile], text: '車庫証明Excelデータ');
     }
   }
 
