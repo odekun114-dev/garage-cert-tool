@@ -20,9 +20,8 @@ class _ShakenshoScannerScreenState extends State<ShakenshoScannerScreen> {
     formats: const [BarcodeFormat.qrCode],
     // 重複読み取りを防止
     detectionSpeed: DetectionSpeed.noDuplicates,
-    // 解像度の最適化を試みる
-    useNewCameraSelector: true,
   );
+
 
   @override
   void dispose() {
