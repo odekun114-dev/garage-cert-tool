@@ -16,11 +16,10 @@ class _ShakenshoScannerScreenState extends State<ShakenshoScannerScreen> {
 
   // 読み取りを強力にするためのコントローラー設定
   final MobileScannerController _controller = MobileScannerController(
-    // フォーマットをQRのみに絞ることで処理速度と精度を上げる
-    formats: const [BarcodeFormat.qrCode],
-    // 重複読み取りを防止
-    detectionSpeed: DetectionSpeed.noDuplicates,
+    // どんな形式でも拾えるように制限解除
+    detectionSpeed: DetectionSpeed.normal, // 反応速度と確実さを優先
   );
+
 
 
   @override
@@ -67,7 +66,9 @@ class _ShakenshoScannerScreenState extends State<ShakenshoScannerScreen> {
               children: [
                 MobileScanner(
                   controller: _controller,
+                  fit: BoxFit.contain, // Webカメラ映像が引き伸ばされてQRが歪むのを防ぐ
                   onDetect: (capture) {
+
                     final List<Barcode> barcodes = capture.barcodes;
                     for (final barcode in barcodes) {
                       final String? code = barcode.rawValue;
