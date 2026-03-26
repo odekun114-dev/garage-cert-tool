@@ -165,11 +165,13 @@ class _GarageCertificateScreenState extends State<GarageCertificateScreen> {
           if (data['length']?.isNotEmpty == true) _lengthController.text = data['length']!;
           if (data['width']?.isNotEmpty == true) _widthController.text = data['width']!;
           if (data['height']?.isNotEmpty == true) _heightController.text = data['height']!;
-          if (data['ownerName']?.isNotEmpty == true) {
-             _ownerNameController.text = data['ownerName']!;
-          }
-          if (data['ownerAddress']?.isNotEmpty == true) _ownerAddressController.text = data['ownerAddress']!;
+          
+          // 申請者の氏名・住所は自社名を入れるため、自動入力から外して空欄にする
+          // if (data['ownerName']?.isNotEmpty == true) _ownerNameController.text = data['ownerName']!;
+          // if (data['ownerAddress']?.isNotEmpty == true) _ownerAddressController.text = data['ownerAddress']!;
+          
           if (data['useBaseAddress']?.isNotEmpty == true) _addressMainController.text = data['useBaseAddress']!;
+
         });
         
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('JSONデータを一発反映しました！', style: TextStyle(fontWeight: FontWeight.bold)), backgroundColor: Colors.green));
