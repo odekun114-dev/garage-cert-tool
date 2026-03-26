@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
@@ -7,9 +9,11 @@ import '../models/garage_models.dart';
 import '../services/excel_service.dart';
 import '../services/garage_draft_service.dart';
 import '../utils/shakensho_qr_parser.dart';
+import '../utils/shakensho_json_parser.dart';
 import 'garage_editor_screen.dart';
 import 'shakensho_scanner_screen.dart';
 import 'garage_drafts_list_screen.dart';
+
 
 class GarageCertificateScreen extends StatefulWidget {
   const GarageCertificateScreen({super.key});
@@ -141,6 +145,81 @@ class _GarageCertificateScreenState extends State<GarageCertificateScreen> {
     }
   }
 
+  // 電子車検証データの読み込み (JSON)
+  Future<void> _importJson() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['json', 'txt'],
+        withData: true,
+      );
+
+      if (result != null && result.files.single.bytes != null) {
+        final jsonString = utf8.decode(result.files.single.bytes!);
+        final data = ShakenshoJsonParser.parse(jsonString);
+        
+        setState(() {
+          if (data['vehicleName']?.isNotEmpty == true) _vehicleNameController.text = data['vehicleName']!;
+          if (data['modelCode']?.isNotEmpty == true) _modelCodeController.text = data['modelCode']!;
+          if (data['vin']?.isNotEmpty == true) _vinController.text = data['vin']!;
+          if (data['length']?.isNotEmpty == true) _lengthController.text = data['length']!;
+          if (data['width']?.isNotEmpty == true) _widthController.text = data['width']!;
+          if (data['height']?.isNotEmpty == true) _heightController.text = data['height']!;
+          if (data['ownerName']?.isNotEmpty == true) {
+             _ownerNameController.text = data['ownerName']!;
+          }
+          if (data['ownerAddress']?.isNotEmpty == true) _ownerAddressController.text = data['ownerAddress']!;
+          if (data['useBaseAddress']?.isNotEmpty == true) _addressMainController.text = data['useBaseAddress']!;
+        });
+        
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('JSONデータを一発反映しました！', style: TextStyle(fontWeight: FontWeight.bold)), backgroundColor: Colors.green));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('読み込みエラー: $e')));
+    }
+  }
+
+  void _showImportOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Text('車両情報の入力方法', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              ),
+              ListTile(
+                leading: const Icon(Icons.upload_file, color: Colors.blue, size: 30),
+                title: const Text('電子車検証データ (JSON) を読込む', style: TextStyle(fontWeight: FontWeight.bold)),
+                subtitle: const Text('車検証閲覧アプリから出力したファイルを使って一瞬で入力します'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _importJson();
+                },
+              ),
+              const Divider(),
+              ListTile(
+                leading: const Icon(Icons.qr_code_scanner, color: Colors.green, size: 30),
+                title: const Text('紙の車検証のQRをカメラで読む'),
+                subtitle: const Text('※QRが細かいため、カメラのピント合わせが難しい場合があります'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _startQRScan();
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      }
+    );
+  }
+
+
   // クラウドへの一時保存
   Future<void> _saveAsDraft() async {
     setState(() {}); // ローディング表示用
@@ -231,11 +310,12 @@ class _GarageCertificateScreenState extends State<GarageCertificateScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: _startQRScan,
+        onPressed: _showImportOptions,
         backgroundColor: Colors.blue.shade700,
-        label: const Text('車検証QR', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
-        icon: const Icon(Icons.qr_code_scanner, color: Colors.white),
+        label: const Text('車検証読込', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+        icon: const Icon(Icons.drive_folder_upload, color: Colors.white),
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Form(
