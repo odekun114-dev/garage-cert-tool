@@ -14,6 +14,22 @@ class _ShakenshoScannerScreenState extends State<ShakenshoScannerScreen> {
   final List<String> _scannedTexts = [];
   bool _isFinished = false;
 
+  // 読み取りを強力にするためのコントローラー設定
+  final MobileScannerController _controller = MobileScannerController(
+    // フォーマットをQRのみに絞ることで処理速度と精度を上げる
+    formats: const [BarcodeFormat.qrCode],
+    // 重複読み取りを防止
+    detectionSpeed: DetectionSpeed.noDuplicates,
+    // 解像度の最適化を試みる
+    useNewCameraSelector: true,
+  );
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -48,22 +64,53 @@ class _ShakenshoScannerScreenState extends State<ShakenshoScannerScreen> {
             ),
           ),
           Expanded(
-            child: MobileScanner(
-              onDetect: (capture) {
-                final List<Barcode> barcodes = capture.barcodes;
-                for (final barcode in barcodes) {
-                  final String? code = barcode.rawValue;
-                  if (code != null && !_scannedTexts.contains(code)) {
-                    setState(() {
-                      _scannedTexts.add(code);
-                    });
-                    // フィードバック
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text('読取成功: $code'), duration: const Duration(milliseconds: 500)),
-                    );
-                  }
-                }
-              },
+            child: Stack(
+              children: [
+                MobileScanner(
+                  controller: _controller,
+                  onDetect: (capture) {
+                    final List<Barcode> barcodes = capture.barcodes;
+                    for (final barcode in barcodes) {
+                      final String? code = barcode.rawValue;
+                      if (code != null && !_scannedTexts.contains(code)) {
+                        setState(() {
+                          _scannedTexts.add(code);
+                        });
+                        // フィードバック
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('読取成功: ${_scannedTexts.length}個目'), duration: const Duration(milliseconds: 500), backgroundColor: Colors.green),
+                        );
+                      }
+                    }
+                  },
+                ),
+                // ターゲット枠のUI（ピントを合わせやすくする効果）
+                Center(
+                  child: Container(
+                    width: 250,
+                    height: 250,
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.redAccent, width: 3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 24,
+                  left: 0,
+                  right: 0,
+                  child: Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text('赤い枠の中にQRコードを映してください', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
           Container(
