@@ -10,41 +10,66 @@ class ShakenshoJsonParser {
       // JSONがリストでくる場合（複数の車両データを含む場合）と、単一オブジェクトの場合両方に対応
       final Map<String, dynamic> item = decoded is List ? decoded.first : decoded;
       
+      // 電子車検証特有の "CertInfo" や "CarInfo" というキーで一段ネストされているケースを平坦化
+      final Map<String, dynamic> searchTarget = {};
+      searchTarget.addAll(item);
+      item.forEach((key, value) {
+        if (value is Map) {
+          searchTarget.addAll(Map<String, dynamic>.from(value));
+        }
+      });
+      
+      // 住所が「大字等(Char)」と「番地(NumValue)」に分かれている場合があるため結合する
+      String getAddress(String baseKey) {
+        final charPart = _findValue(searchTarget, ['${baseKey}Char']);
+        final numPart = _findValue(searchTarget, ['${baseKey}NumValue']);
+        final fullStr = '$charPart$numPart'.trim();
+        // 文字列が空だった場合や、"＊＊＊"（同上）などの場合はそのまま返すか元を探す
+        return fullStr.replaceAll('＊＊＊', ''); 
+      }
+
+      String useBase = getAddress('Useheadqrter');
+      if (useBase.isEmpty) {
+        useBase = _findValue(searchTarget, ['使用の本拠の位置', 'useBaseAddress', 'useBase']);
+      }
+
+      String ownerName = _findValue(searchTarget, ['OwnernameHighLevelChar', 'OwnernameLowLevelChar', '所有者の氏名又は名称', 'ownerName']);
+      String ownerAddress = getAddress('OwnerAddress');
+
+      // 使用者が明記されている場合（"＊＊＊" でない場合）はそのまま使用
+      final userName = _findValue(searchTarget, ['UsernameHighLevelChar', 'UsernameLowLevelChar']);
+      if (userName.isNotEmpty && userName != '＊＊＊') {
+        ownerName = userName;
+      }
+      final userAddress = getAddress('UserAddress');
+      if (userAddress.isNotEmpty && userAddress != '＊＊＊') {
+        ownerAddress = userAddress;
+      }
+
       return {
-        'vehicleName': _findValue(item, ['車名', 'vehicleName', 'make']),
-        'modelCode': _findValue(item, ['型式', 'model', 'vehicleModel']),
-        'vin': _findValue(item, ['車台番号', 'chassisNumber', 'vin']),
-        'length': _findValue(item, ['長さ', 'length']),
-        'width': _findValue(item, ['幅', 'width']),
-        'height': _findValue(item, ['高さ', 'height']),
-        'ownerName': _findValue(item, ['所有者の氏名又は名称', 'ownerName', '使用者の氏名又は名称', 'userName']),
-        'ownerAddress': _findValue(item, ['所有者の住所', 'ownerAddress', '使用者の住所', 'userAddress']),
-        'useBaseAddress': _findValue(item, ['使用の本拠の位置', 'useBaseAddress', 'useBase']),
+        'vehicleName': _findValue(searchTarget, ['CarName', '車名', 'vehicleName', 'make']),
+        'modelCode': _findValue(searchTarget, ['Model', '型式', 'model', 'vehicleModel']),
+        'vin': _findValue(searchTarget, ['CarNo', '車台番号', 'chassisNumber', 'vin']),
+        'length': _findValue(searchTarget, ['Length', '長さ', 'length']),
+        'width': _findValue(searchTarget, ['Width', '幅', 'width']),
+        'height': _findValue(searchTarget, ['Height', '高さ', 'height']),
+        'ownerName': ownerName,
+        'ownerAddress': ownerAddress,
+        'useBaseAddress': useBase,
       };
     } catch (e) {
       return {};
     }
   }
 
-  /// 複数のキー候補から値を探し出し、ネスト（階層化）された中身も探索する
+  /// 複数のキー候補から値を探し出す
   static String _findValue(Map<String, dynamic> map, List<String> keys) {
-    // 1. 直下のキーを探す
     for (final key in keys) {
       if (map.containsKey(key) && map[key] != null) {
         return map[key].toString();
       }
     }
-    
-    // 2. 1つ下の階層 (オブジェクトの中にある場合) も探索する
-    for (final value in map.values) {
-       if (value is Map<String, dynamic>) {
-           for (final key in keys) {
-               if (value.containsKey(key) && value[key] != null) {
-                   return value[key].toString();
-               }
-           }
-       }
-    }
     return '';
   }
 }
+
